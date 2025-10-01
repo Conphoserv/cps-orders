@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Processing - Paid Orders</h2>
+<table>
+  <thead><tr><th>Order #</th><th>Customer</th><th>Items</th><th>Total</th></tr></thead>
+  <tbody>
+  {% for o in orders %}
+    <tr>
+      <td>#{{ o.id }}</td>
+      <td>{{ o.customer_name }}</td>
+      <td>
+        <ul>
+        {% for it in o.items %}
+          <li>Photo {{ it.photo_number }} — {{ it.size }} × {{ it.qty }}</li>
+        {% endfor %}
+        </ul>
+      </td>
+      <td>${{ '%.2f'|format(o.total) }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if not orders %}<p>No paid orders yet.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Admin Dashboard</h2>
+<table>
+  <thead><tr><th>Order #</th><th>Customer</th><th>Total</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for o in orders %}
+    <tr>
+      <td>#{{ o[0] }}</td>
+      <td>{{ o[1] }}</td>
+      <td>${{ '%.2f'|format(o[2]) }}</td>
+      <td><span class="badge">{{ o[3] }}</span></td>
+      <td>{{ o[4] }}</td>
+      <td>
+        <a class="btn" href="/order/{{ o[0] }}">View</a>
+        {% if o[3] != 'paid' %}
+        <form method="post" action="/mark_paid/{{ o[0] }}" style="display:inline">
+          <button class="btn" type="submit">Mark Paid</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

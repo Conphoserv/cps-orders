@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Order #{{ order.id }}</h2>
+<p><strong>{{ order.customer_name }}</strong> — {{ order.phone }} — {{ order.email }}</p>
+<p>{{ order.address }}</p>
+<table>
+  <thead><tr><th>Photo #</th><th>Size</th><th>Qty</th></tr></thead>
+  <tbody>
+  {% for it in order.items %}
+    <tr><td>{{ it.photo_number }}</td><td>{{ it.size }}</td><td>{{ it.qty }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p>Subtotal: ${{ '%.2f'|format(order.subtotal) }} &nbsp; Discount: ${{ '%.2f'|format(order.discount) }} &nbsp; <strong>Total: ${{ '%.2f'|format(order.total) }}</strong></p>
+<p>Status: <span class="badge">{{ order.status }}</span></p>
+<a class="btn" href="/admin">Back</a>
+{% endblock %}

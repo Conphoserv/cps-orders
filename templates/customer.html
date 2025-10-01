@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Order Prints</h2>
+<p>4x6: $8.00 each or 3 for $20.00 &nbsp; | &nbsp; 5x7: $15.00 &nbsp; | &nbsp; 8x10: $20.00</p>
+<table id="items"><thead><tr><th>Photo #</th><th>Size</th><th>Qty</th><th></th></tr></thead><tbody></tbody></table>
+<button class="btn" onclick="addRow()">Add Photo</button>
+<h3>Contact</h3>
+<div class="row"><input id="customer_name" placeholder="Full Name"><input id="phone" placeholder="Phone"></div>
+<input id="address" placeholder="Mailing Address"><input id="email" placeholder="Email">
+<h3>Totals</h3>
+<p>Subtotal: $<span id="subtotal">0.00</span> &nbsp; Discount: $<span id="discount">0.00</span> &nbsp; <span class="total">Total: $<span id="total">0.00</span></span></p>
+<form id="orderForm" method="post" action="/submit_order" onsubmit="return submitOrder()">
+  <input type="hidden" name="items_json" id="items_json">
+  <input type="hidden" name="customer_name" id="customer_name_hidden">
+  <input type="hidden" name="address" id="address_hidden">
+  <input type="hidden" name="phone" id="phone_hidden">
+  <input type="hidden" name="email" id="email_hidden">
+  <button class="btn" type="submit">Submit Order</button>
+</form>
+<script>
+function addRow(photo='', size='4x6', qty=1){
+  const tbody = document.querySelector('#items tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input value="${photo}" placeholder="e.g., 1234"></td>
+    <td>
+      <select>
+        <option value="4x6"${size==='4x6'?' selected':''}>4x6</option>
+        <option value="5x7"${size==='5x7'?' selected':''}>5x7</option>
+        <option value="8x10"${size==='8x10'?' selected':''}>8x10</option>
+      </select>
+    </td>
+    <td><input type="number" min="1" value="${qty}" style="max-width:80px"></td>
+    <td><button class="btn secondary" onclick="this.closest('tr').remove(); recalc()">Remove</button></td>`;
+  tbody.appendChild(tr);
+  ['input','change'].forEach(ev=> tr.addEventListener(ev, recalc));
+  recalc();
+}
+function getItems(){
+  const rows = Array.from(document.querySelectorAll('#items tbody tr'));
+  return rows.map(r=>{
+    const tds = r.querySelectorAll('td');
+    return { photo_number: tds[0].querySelector('input').value.trim(),
+             size: tds[1].querySelector('select').value,
+             qty: parseInt(tds[2].querySelector('input').value || '1', 10)};
+  }).filter(x=> x.photo_number && x.qty>0);
+}
+async function recalc(){
+  const items = getItems();
+  const res = await fetch('/calc', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})});
+  const data = await res.json();
+  document.getElementById('subtotal').textContent = data.subtotal.toFixed(2);
+  document.getElementById('discount').textContent = data.discount.toFixed(2);
+  document.getElementById('total').textContent = data.total.toFixed(2);
+}
+function submitOrder(){
+  const items = getItems();
+  if(items.length===0){ alert('Please add at least one photo.'); return false; }
+  document.getElementById('items_json').value = JSON.stringify(items);
+  document.getElementById('customer_name_hidden').value = document.getElementById('customer_name').value;
+  document.getElementById('address_hidden').value = document.getElementById('address').value;
+  document.getElementById('phone_hidden').value = document.getElementById('phone').value;
+  document.getElementById('email_hidden').value = document.getElementById('email').value;
+  return true;
+}
+addRow();
+</script>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+  <h2>Thank you!</h2>
+  <p>Your order number is <strong>#{{ order_id }}</strong>.</p>
+  <p>Total due: <strong>${{ '%.2f'|format(total) }}</strong>.</p>
+  <div style="display:flex; gap:12px; margin-top:16px;">
+    <a class="btn" href="/">Create Another Order</a>
+    <a class="btn secondary" href="/admin">Go to Admin Dashboard</a>
+  </div>
+{% endblock %}
