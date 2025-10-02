@@ -5,7 +5,6 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 app = Flask(__name__)
 
-# Pricing
 PRICE_TABLE = {"4x6": 8.0, "5x7": 15.0, "8x10": 20.0}
 FOUR_BY_SIX_DEAL = {"size": "4x6", "bundle_qty": 3, "bundle_price": 20.0}
 
@@ -64,8 +63,6 @@ def price_items(items):
         discount = min(normal_price - deal_price, four_by_six_unit_total)
     total = round(subtotal - discount, 2)
     return round(subtotal, 2), round(discount, 2), total
-
-from flask import render_template_string
 
 @app.route("/")
 def index():
