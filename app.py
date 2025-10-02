@@ -1,16 +1,19 @@
+
 import os, json, datetime
 import psycopg2
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 app = Flask(__name__)
 
+# ----- Pricing -----
 PRICE_TABLE = {"4x6": 8.0, "5x7": 15.0, "8x10": 20.0}
 FOUR_BY_SIX_DEAL = {"size": "4x6", "bundle_qty": 3, "bundle_price": 20.0}
 
+# ----- DB helpers -----
 def get_db_conn():
     db_url = os.environ.get("DATABASE_URL")
     if not db_url:
-        raise RuntimeError("DATABASE_URL not set. Add it in Render → Environment.")
+        raise RuntimeError("DATABASE_URL not set. In Render, add it under Environment.")
     if "sslmode=" not in db_url:
         sep = "&" if "?" in db_url else "?"
         db_url = db_url + f"{sep}sslmode=require"
@@ -36,11 +39,13 @@ def init_db():
             """)
         con.commit()
 
+# Initialize table at import (works with gunicorn)
 try:
     init_db()
 except Exception as e:
     print("[DB INIT ERROR]", e)
 
+# ----- Pricing math -----
 def price_items(items):
     subtotal = 0.0
     discount = 0.0
@@ -64,6 +69,7 @@ def price_items(items):
     total = round(subtotal - discount, 2)
     return round(subtotal, 2), round(discount, 2), total
 
+# ----- Routes -----
 @app.route("/")
 def index():
     return render_template("customer.html", price_table=PRICE_TABLE, deal=FOUR_BY_SIX_DEAL)
@@ -79,6 +85,7 @@ def submit_order():
     data = request.form
     items = json.loads(data.get("items_json", "[]"))
     subtotal, discount, total = price_items(items)
+
     with get_db_conn() as con:
         with con.cursor() as cur:
             cur.execute("""
@@ -91,11 +98,13 @@ def submit_order():
                 data.get("address","").strip(),
                 data.get("phone","").strip(),
                 data.get("email","").strip(),
-                json.dumps(items), subtotal, discount, total,
+                json.dumps(items),
+                subtotal, discount, total,
                 datetime.datetime.utcnow()
             ))
             order_id = cur.fetchone()[0]
         con.commit()
+
     return redirect(url_for("thank_you", order_id=order_id, total=total))
 
 @app.route("/thank_you/<int:order_id>")
@@ -123,7 +132,11 @@ def order_detail(order_id):
     if not row:
         return "Order not found", 404
     order = {
-        "id": row[0], "customer_name": row[1], "address": row[2], "phone": row[3], "email": row[4],
+        "id": row[0],
+        "customer_name": row[1],
+        "address": row[2],
+        "phone": row[3],
+        "email": row[4],
         "items": json.loads(row[5] or "[]"),
         "subtotal": float(row[6]) if row[6] is not None else 0.0,
         "discount": float(row[7]) if row[7] is not None else 0.0,
@@ -147,15 +160,14 @@ def processing():
         with con.cursor() as cur:
             cur.execute("SELECT id, customer_name, items_json, total FROM orders WHERE status='paid' ORDER BY id DESC")
             rows = cur.fetchall()
-    paid = []
-    for r in rows:
-        paid.append({
-            "id": r[0],
-            "customer_name": r[1],
-            "items": json.loads(r[2] or "[]"),
-            "total": float(r[3]) if r[3] is not None else 0.0
-        })
+    paid = [{
+        "id": r[0],
+        "customer_name": r[1],
+        "items": json.loads(r[2] or "[]"),
+        "total": float(r[3]) if r[3] is not None else 0.0
+    } for r in rows]
     return render_template("processing.html", orders=paid)
 
+# Gunicorn entrypoint
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
